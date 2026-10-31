@@ -18,42 +18,52 @@ interface AppInputProps extends TextInputProps {
   containerStyle?: ViewStyle;
 }
 
-export function AppInput({
-  label,
-  error,
-  helper,
-  leftIcon,
-  rightIcon,
-  containerStyle,
-  style,
-  ...rest
-}: AppInputProps) {
-  return (
-    <View style={[styles.container, containerStyle]}>
-      {label && <Text style={styles.label}>{label}</Text>}
-      <View
-        style={[
-          styles.inputWrapper,
-          error ? styles.inputWrapperError : null,
-          rest.multiline ? styles.multilineWrapper : null,
-        ]}
-      >
-        {leftIcon && <View style={styles.leftIcon}>{leftIcon}</View>}
-        <TextInput
-          style={[styles.input, rest.multiline ? styles.multilineInput : null, style]}
-          placeholderTextColor={COLORS.secondaryText}
-          {...rest}
-        />
-        {rightIcon && <View style={styles.rightIcon}>{rightIcon}</View>}
+export const AppInput = React.forwardRef<any, AppInputProps>(
+  (
+    {
+      label,
+      error,
+      helper,
+      leftIcon,
+      rightIcon,
+      containerStyle,
+      style,
+      ...rest
+    },
+    ref
+  ) => {
+    return (
+      <View style={[styles.container, containerStyle]}>
+        {label && <Text style={styles.label}>{label}</Text>}
+        <View
+          style={[
+            styles.inputWrapper,
+            error ? styles.inputWrapperError : null,
+            rest.multiline ? styles.multilineWrapper : null,
+          ]}
+        >
+          {leftIcon && <View style={styles.leftIcon}>{leftIcon}</View>}
+          <TextInput
+            ref={ref}
+            style={[
+              styles.input,
+              rest.multiline ? styles.multilineInput : null,
+              style,
+            ]}
+            placeholderTextColor={COLORS.secondaryText}
+            {...rest}
+          />
+          {rightIcon && <View style={styles.rightIcon}>{rightIcon}</View>}
+        </View>
+        {error ? (
+          <Text style={styles.errorText}>{error}</Text>
+        ) : helper ? (
+          <Text style={styles.helperText}>{helper}</Text>
+        ) : null}
       </View>
-      {error ? (
-        <Text style={styles.errorText}>{error}</Text>
-      ) : helper ? (
-        <Text style={styles.helperText}>{helper}</Text>
-      ) : null}
-    </View>
-  );
-}
+    );
+  }
+);
 
 const styles = StyleSheet.create({
   container: {
@@ -78,7 +88,7 @@ const styles = StyleSheet.create({
   multilineWrapper: {
     alignItems: 'flex-start',
     paddingVertical: 10,
-    minHeight: 90,
+    minHeight: 100,
   },
   inputWrapperError: {
     borderColor: COLORS.danger,
@@ -91,7 +101,7 @@ const styles = StyleSheet.create({
   },
   multilineInput: {
     textAlignVertical: 'top',
-    height: 70,
+    minHeight: 80,
   },
   leftIcon: {
     marginRight: 10,

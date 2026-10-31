@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useMemo, useRef, useEffect } from 'react';
 import {
   View,
   Text,
@@ -10,6 +10,9 @@ import {
   Alert,
   SafeAreaView,
   Platform,
+  TouchableWithoutFeedback,
+  Keyboard,
+  useWindowDimensions,
 } from 'react-native';
 import { useLocalSearchParams, useRouter, useFocusEffect } from 'expo-router';
 import {
@@ -43,6 +46,7 @@ import { calculateDurationDays } from '../../src/utils/date';
 export default function ItineraryScreen() {
   const { tripId } = useLocalSearchParams<{ tripId: string }>();
   const router = useRouter();
+  const { height: screenHeight } = useWindowDimensions();
 
   const [trip, setTrip] = useState<Trip | null>(null);
   const [itineraries, setItineraries] = useState<Itinerary[]>([]);
@@ -58,6 +62,31 @@ export default function ItineraryScreen() {
   const [endTime, setEndTime] = useState('11:00 AM');
   const [activityDesc, setActivityDesc] = useState('');
   const [saving, setSaving] = useState(false);
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
+  const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
+
+  const itinScrollRef = useRef<any>(null);
+
+  useEffect(() => {
+    const showSub = Keyboard.addListener(
+      Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow',
+      (e) => {
+        setKeyboardHeight(e.endCoordinates.height);
+        setIsKeyboardVisible(true);
+      }
+    );
+    const hideSub = Keyboard.addListener(
+      Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide',
+      () => {
+        setKeyboardHeight(0);
+        setIsKeyboardVisible(false);
+      }
+    );
+    return () => {
+      showSub.remove();
+      hideSub.remove();
+    };
+  }, []);
 
   const loadData = useCallback(async () => {
     if (!tripId) return;
@@ -299,18 +328,53 @@ export default function ItineraryScreen() {
         visible={modalVisible}
         animationType="slide"
         transparent
-        onRequestClose={() => setModalVisible(false)}
+        statusBarTranslucent
+        onRequestClose={() => {
+          Keyboard.dismiss();
+          setModalVisible(false);
+        }}
       >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
+        <View style={[styles.modalOverlay, { paddingBottom: keyboardHeight }]}>
+          <TouchableWithoutFeedback
+            onPress={() => {
+              Keyboard.dismiss();
+              setModalVisible(false);
+            }}
+          >
+            <View style={StyleSheet.absoluteFill} />
+          </TouchableWithoutFeedback>
+
+          <View
+            style={[
+              styles.modalContent,
+              {
+                maxHeight:
+                  keyboardHeight > 0
+                    ? Math.max(300, screenHeight - keyboardHeight - (Platform.OS === 'android' ? 50 : 70))
+                    : '88%',
+              },
+            ]}
+          >
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Add Itinerary Activity</Text>
-              <TouchableOpacity onPress={() => setModalVisible(false)}>
+              <TouchableOpacity
+                onPress={() => {
+                  Keyboard.dismiss();
+                  setModalVisible(false);
+                }}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              >
                 <X color={COLORS.secondaryText} size={22} />
               </TouchableOpacity>
             </View>
 
-            <ScrollView showsVerticalScrollIndicator={false}>
+            <ScrollView
+              ref={itinScrollRef}
+              showsVerticalScrollIndicator={true}
+              keyboardShouldPersistTaps="handled"
+              keyboardDismissMode="on-drag"
+              contentContainerStyle={{ paddingBottom: 24 }}
+            >
               <AppInput
                 label="Day Number *"
                 placeholder="e.g. 1"
@@ -359,6 +423,11 @@ export default function ItineraryScreen() {
                 value={activityDesc}
                 onChangeText={setActivityDesc}
                 multiline
+                onFocus={() => {
+                  setTimeout(() => {
+                    itinScrollRef.current?.scrollToEnd({ animated: true });
+                  }, 120);
+                }}
               />
 
               <AppButton
@@ -366,7 +435,7 @@ export default function ItineraryScreen() {
                 onPress={handleSaveActivity}
                 loading={saving}
                 icon={<Check color={COLORS.white} size={18} />}
-                style={{ marginTop: 10, marginBottom: 20 }}
+                style={{ marginTop: 10, marginBottom: 10 }}
               />
             </ScrollView>
           </View>

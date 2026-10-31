@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import {
   View,
   Text,
@@ -10,6 +10,9 @@ import {
   Alert,
   SafeAreaView,
   Platform,
+  TouchableWithoutFeedback,
+  Keyboard,
+  useWindowDimensions,
 } from 'react-native';
 import { useLocalSearchParams, useRouter, useFocusEffect } from 'expo-router';
 import {
@@ -45,6 +48,7 @@ type FilterType = 'all' | 'unpacked' | 'packed';
 export default function PackingScreen() {
   const { tripId } = useLocalSearchParams<{ tripId: string }>();
   const router = useRouter();
+  const { height: screenHeight } = useWindowDimensions();
 
   const [trip, setTrip] = useState<Trip | null>(null);
   const [items, setItems] = useState<PackingItem[]>([]);
@@ -58,6 +62,22 @@ export default function PackingScreen() {
     PACKING_CATEGORIES[0]
   );
   const [saving, setSaving] = useState(false);
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
+
+  useEffect(() => {
+    const showSub = Keyboard.addListener(
+      Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow',
+      (e) => setKeyboardHeight(e.endCoordinates.height)
+    );
+    const hideSub = Keyboard.addListener(
+      Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide',
+      () => setKeyboardHeight(0)
+    );
+    return () => {
+      showSub.remove();
+      hideSub.remove();
+    };
+  }, []);
 
   const loadData = useCallback(async () => {
     if (!tripId) return;
@@ -274,13 +294,42 @@ export default function PackingScreen() {
         visible={modalVisible}
         animationType="slide"
         transparent
-        onRequestClose={() => setModalVisible(false)}
+        statusBarTranslucent
+        onRequestClose={() => {
+          Keyboard.dismiss();
+          setModalVisible(false);
+        }}
       >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
+        <View style={[styles.modalOverlay, { paddingBottom: keyboardHeight }]}>
+          <TouchableWithoutFeedback
+            onPress={() => {
+              Keyboard.dismiss();
+              setModalVisible(false);
+            }}
+          >
+            <View style={StyleSheet.absoluteFill} />
+          </TouchableWithoutFeedback>
+
+          <View
+            style={[
+              styles.modalContent,
+              {
+                maxHeight:
+                  keyboardHeight > 0
+                    ? Math.max(300, screenHeight - keyboardHeight - (Platform.OS === 'android' ? 50 : 70))
+                    : '88%',
+              },
+            ]}
+          >
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Add Packing Item</Text>
-              <TouchableOpacity onPress={() => setModalVisible(false)}>
+              <TouchableOpacity
+                onPress={() => {
+                  Keyboard.dismiss();
+                  setModalVisible(false);
+                }}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              >
                 <X color={COLORS.secondaryText} size={22} />
               </TouchableOpacity>
             </View>
@@ -323,7 +372,7 @@ export default function PackingScreen() {
               onPress={handleSaveItem}
               loading={saving}
               icon={<Check color={COLORS.white} size={18} />}
-              style={{ marginTop: 16, marginBottom: 20 }}
+              style={{ marginTop: 16, marginBottom: 10 }}
             />
           </View>
         </View>

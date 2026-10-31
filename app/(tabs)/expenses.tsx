@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useMemo, useRef, useEffect } from 'react';
 import {
   View,
   Text,
@@ -9,6 +9,10 @@ import {
   Modal,
   Alert,
   TextInput,
+  Platform,
+  TouchableWithoutFeedback,
+  Keyboard,
+  useWindowDimensions,
 } from 'react-native';
 import { useFocusEffect } from 'expo-router';
 import {
@@ -20,6 +24,7 @@ import {
   Check,
   Calendar,
   Layers,
+  Keyboard as KeyboardIcon,
 } from 'lucide-react-native';
 import { COLORS } from '../../src/constants/colors';
 import { EXPENSE_CATEGORIES } from '../../src/constants/config';
@@ -40,6 +45,7 @@ import { AppInput } from '../../src/components/common/AppInput';
 import { AppButton } from '../../src/components/common/AppButton';
 
 export default function ExpensesScreen() {
+  const { height: screenHeight } = useWindowDimensions();
   const [trips, setTrips] = useState<Trip[]>([]);
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [selectedTripId, setSelectedTripId] = useState<string>('all');
@@ -54,6 +60,31 @@ export default function ExpensesScreen() {
   const [newDate, setNewDate] = useState(getTodayDateString());
   const [newNotes, setNewNotes] = useState('');
   const [savingExpense, setSavingExpense] = useState(false);
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
+  const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
+
+  const expenseScrollRef = useRef<any>(null);
+
+  useEffect(() => {
+    const showSub = Keyboard.addListener(
+      Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow',
+      (e) => {
+        setKeyboardHeight(e.endCoordinates.height);
+        setIsKeyboardVisible(true);
+      }
+    );
+    const hideSub = Keyboard.addListener(
+      Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide',
+      () => {
+        setKeyboardHeight(0);
+        setIsKeyboardVisible(false);
+      }
+    );
+    return () => {
+      showSub.remove();
+      hideSub.remove();
+    };
+  }, []);
 
   const loadData = useCallback(async () => {
     try {
@@ -361,23 +392,75 @@ export default function ExpensesScreen() {
         visible={modalVisible}
         animationType="slide"
         transparent
-        onRequestClose={() => setModalVisible(false)}
+        statusBarTranslucent
+        onRequestClose={() => {
+          Keyboard.dismiss();
+          setModalVisible(false);
+        }}
       >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
+        <View style={[styles.modalOverlay, { paddingBottom: keyboardHeight }]}>
+          <TouchableWithoutFeedback
+            onPress={() => {
+              Keyboard.dismiss();
+              setModalVisible(false);
+            }}
+          >
+            <View style={StyleSheet.absoluteFill} />
+          </TouchableWithoutFeedback>
+
+          <View
+            style={[
+              styles.modalContent,
+              {
+                maxHeight:
+                  keyboardHeight > 0
+                    ? Math.max(300, screenHeight - keyboardHeight - (Platform.OS === 'android' ? 50 : 70))
+                    : '88%',
+              },
+            ]}
+          >
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Add Travel Expense</Text>
-              <TouchableOpacity
-                onPress={() => setModalVisible(false)}
-                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-              >
-                <X color={COLORS.secondaryText} size={22} />
-              </TouchableOpacity>
+
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                {isKeyboardVisible && (
+                  <TouchableOpacity
+                    style={{
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      backgroundColor: COLORS.primaryLight,
+                      paddingHorizontal: 10,
+                      paddingVertical: 5,
+                      borderRadius: 12,
+                      gap: 4,
+                    }}
+                    onPress={Keyboard.dismiss}
+                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                  >
+                    <KeyboardIcon color={COLORS.primaryDark} size={15} />
+                    <Text style={{ fontSize: 12, fontWeight: '700', color: COLORS.primaryDark }}>
+                      Hide Keyboard
+                    </Text>
+                  </TouchableOpacity>
+                )}
+                <TouchableOpacity
+                  onPress={() => {
+                    Keyboard.dismiss();
+                    setModalVisible(false);
+                  }}
+                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                >
+                  <X color={COLORS.secondaryText} size={22} />
+                </TouchableOpacity>
+              </View>
             </View>
 
             <ScrollView
-              showsVerticalScrollIndicator={false}
+              ref={expenseScrollRef}
+              showsVerticalScrollIndicator={true}
               keyboardShouldPersistTaps="handled"
+              keyboardDismissMode="on-drag"
+              contentContainerStyle={{ paddingBottom: 24 }}
             >
               {/* Trip selector */}
               <Text style={styles.inputLabel}>Associate with Trip</Text>
@@ -450,6 +533,11 @@ export default function ExpensesScreen() {
                 value={newAmount}
                 onChangeText={setNewAmount}
                 keyboardType="numeric"
+                onFocus={() => {
+                  setTimeout(() => {
+                    expenseScrollRef.current?.scrollTo({ y: 160, animated: true });
+                  }, 120);
+                }}
               />
 
               <AppInput
@@ -458,6 +546,11 @@ export default function ExpensesScreen() {
                 value={newDate}
                 onChangeText={setNewDate}
                 leftIcon={<Calendar color={COLORS.primary} size={18} />}
+                onFocus={() => {
+                  setTimeout(() => {
+                    expenseScrollRef.current?.scrollTo({ y: 240, animated: true });
+                  }, 120);
+                }}
               />
 
               <AppInput
@@ -466,6 +559,11 @@ export default function ExpensesScreen() {
                 value={newNotes}
                 onChangeText={setNewNotes}
                 multiline
+                onFocus={() => {
+                  setTimeout(() => {
+                    expenseScrollRef.current?.scrollToEnd({ animated: true });
+                  }, 120);
+                }}
               />
 
               <View style={styles.modalBtnRow}>

@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useRef, useEffect } from 'react';
 import {
   View,
   Text,
@@ -10,6 +10,9 @@ import {
   Alert,
   SafeAreaView,
   Platform,
+  TouchableWithoutFeedback,
+  Keyboard,
+  useWindowDimensions,
 } from 'react-native';
 import { useLocalSearchParams, useRouter, useFocusEffect } from 'expo-router';
 import {
@@ -20,6 +23,7 @@ import {
   X,
   Check,
   Calendar,
+  Keyboard as KeyboardIcon,
 } from 'lucide-react-native';
 
 import { COLORS } from '../../src/constants/colors';
@@ -41,6 +45,7 @@ import { formatDate } from '../../src/utils/date';
 export default function NotesScreen() {
   const { tripId } = useLocalSearchParams<{ tripId: string }>();
   const router = useRouter();
+  const { height: screenHeight } = useWindowDimensions();
 
   const [trip, setTrip] = useState<Trip | null>(null);
   const [notes, setNotes] = useState<TravelNote[]>([]);
@@ -52,6 +57,32 @@ export default function NotesScreen() {
   const [noteTitle, setNoteTitle] = useState('');
   const [noteContent, setNoteContent] = useState('');
   const [saving, setSaving] = useState(false);
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
+  const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
+
+  const contentInputRef = useRef<any>(null);
+  const scrollViewRef = useRef<any>(null);
+
+  useEffect(() => {
+    const showSub = Keyboard.addListener(
+      Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow',
+      (e) => {
+        setKeyboardHeight(e.endCoordinates.height);
+        setIsKeyboardVisible(true);
+      }
+    );
+    const hideSub = Keyboard.addListener(
+      Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide',
+      () => {
+        setKeyboardHeight(0);
+        setIsKeyboardVisible(false);
+      }
+    );
+    return () => {
+      showSub.remove();
+      hideSub.remove();
+    };
+  }, []);
 
   const loadData = useCallback(async () => {
     if (!tripId) return;
@@ -87,6 +118,11 @@ export default function NotesScreen() {
     setNoteTitle(note.title);
     setNoteContent(note.content);
     setModalVisible(true);
+  };
+
+  const handleCloseModal = () => {
+    Keyboard.dismiss();
+    setModalVisible(false);
   };
 
   const handleDelete = (id: string) => {
@@ -131,7 +167,7 @@ export default function NotesScreen() {
         await addNote(newNote);
       }
 
-      setModalVisible(false);
+      handleCloseModal();
       loadData();
     } catch (error) {
       console.error(error);
@@ -148,6 +184,11 @@ export default function NotesScreen() {
       </View>
     );
   }
+
+  const modalMaxHeight =
+    keyboardHeight > 0
+      ? Math.max(280, screenHeight - keyboardHeight - (Platform.OS === 'android' ? 50 : 70))
+      : '85%';
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -216,40 +257,85 @@ export default function NotesScreen() {
         )}
       </ScrollView>
 
-      {/* Add/Edit Note Modal */}
+      {/* Add/Edit Note Modal with direct Keyboard Height compensation */}
       <Modal
         visible={modalVisible}
         animationType="slide"
         transparent
-        onRequestClose={() => setModalVisible(false)}
+        statusBarTranslucent
+        onRequestClose={handleCloseModal}
       >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
+        <View style={[styles.modalOverlay, { paddingBottom: keyboardHeight }]}>
+          {/* Backdrop tap to dismiss */}
+          <TouchableWithoutFeedback onPress={handleCloseModal}>
+            <View style={StyleSheet.absoluteFill} />
+          </TouchableWithoutFeedback>
+
+          <View
+            style={[
+              styles.modalContent,
+              { maxHeight: modalMaxHeight },
+            ]}
+          >
+            {/* Modal Header */}
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>
                 {editingNoteId ? 'Edit Travel Note' : 'New Travel Note'}
               </Text>
-              <TouchableOpacity onPress={() => setModalVisible(false)}>
-                <X color={COLORS.secondaryText} size={22} />
-              </TouchableOpacity>
+
+              <View style={styles.modalHeaderRight}>
+                {isKeyboardVisible && (
+                  <TouchableOpacity
+                    style={styles.hideKeyboardBtn}
+                    onPress={Keyboard.dismiss}
+                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                  >
+                    <KeyboardIcon color={COLORS.primaryDark} size={15} />
+                    <Text style={styles.hideKeyboardText}>Hide Keyboard</Text>
+                  </TouchableOpacity>
+                )}
+                <TouchableOpacity
+                  style={styles.closeBtn}
+                  onPress={handleCloseModal}
+                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                >
+                  <X color={COLORS.secondaryText} size={22} />
+                </TouchableOpacity>
+              </View>
             </View>
 
-            <ScrollView showsVerticalScrollIndicator={false}>
+            {/* Scrollable Form */}
+            <ScrollView
+              ref={scrollViewRef}
+              showsVerticalScrollIndicator={true}
+              keyboardShouldPersistTaps="handled"
+              keyboardDismissMode="on-drag"
+              contentContainerStyle={styles.modalScrollContent}
+            >
               <AppInput
                 label="Note Title *"
                 placeholder="e.g. Hotel Booking Details, Wi-Fi Code"
                 value={noteTitle}
                 onChangeText={setNoteTitle}
+                returnKeyType="next"
+                onSubmitEditing={() => contentInputRef.current?.focus()}
+                blurOnSubmit={false}
               />
 
               <AppInput
+                ref={contentInputRef}
                 label="Content"
                 placeholder="Write your notes, reservation codes, emergency numbers..."
                 value={noteContent}
                 onChangeText={setNoteContent}
                 multiline
-                numberOfLines={6}
-                style={{ height: 120 }}
+                numberOfLines={5}
+                onFocus={() => {
+                  setTimeout(() => {
+                    scrollViewRef.current?.scrollToEnd({ animated: true });
+                  }, 120);
+                }}
+                style={styles.multilineInput}
               />
 
               <AppButton
@@ -257,7 +343,7 @@ export default function NotesScreen() {
                 onPress={handleSaveNote}
                 loading={saving}
                 icon={<Check color={COLORS.white} size={18} />}
-                style={{ marginTop: 10, marginBottom: 20 }}
+                style={styles.saveNoteBtn}
               />
             </ScrollView>
           </View>
@@ -348,25 +434,64 @@ const styles = StyleSheet.create({
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: 'rgba(0, 0, 0, 0.55)',
     justifyContent: 'flex-end',
   },
   modalContent: {
     backgroundColor: COLORS.white,
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    padding: 22,
-    maxHeight: '90%',
+    borderTopLeftRadius: 26,
+    borderTopRightRadius: 26,
+    paddingTop: 20,
+    paddingHorizontal: 22,
+    paddingBottom: Platform.OS === 'ios' ? 24 : 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 10,
+    elevation: 8,
   },
   modalHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 16,
+    paddingBottom: 4,
   },
   modalTitle: {
-    fontSize: 18,
-    fontWeight: '700',
+    fontSize: 19,
+    fontWeight: '800',
     color: COLORS.text,
+  },
+  modalHeaderRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  hideKeyboardBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: COLORS.primaryLight,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 12,
+    gap: 4,
+  },
+  hideKeyboardText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: COLORS.primaryDark,
+  },
+  closeBtn: {
+    padding: 4,
+  },
+  modalScrollContent: {
+    paddingBottom: 20,
+  },
+  multilineInput: {
+    height: 110,
+  },
+  saveNoteBtn: {
+    marginTop: 10,
+    marginBottom: 10,
   },
 });
