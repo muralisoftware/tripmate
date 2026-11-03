@@ -10,6 +10,7 @@ import {
   TextInput,
 } from 'react-native';
 import { useRouter, useFocusEffect } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   Plus,
   Search,
@@ -28,6 +29,7 @@ type FilterTab = 'all' | TripStatus;
 
 export default function TripsScreen() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const [trips, setTrips] = useState<Trip[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -92,7 +94,12 @@ export default function TripsScreen() {
   return (
     <View style={styles.container}>
       {/* Header */}
-      <View style={styles.header}>
+      <View
+        style={[
+          styles.header,
+          { paddingTop: Math.max(insets.top, 20) + 8 },
+        ]}
+      >
         <View>
           <Text style={styles.screenTitle}>My Journeys</Text>
           <Text style={styles.screenSubtitle}>
@@ -333,6 +340,6 @@ const styles = StyleSheet.create({
   },
   listContent: {
     padding: 20,
-    paddingBottom: 40,
+    paddingBottom: 28,
   },
 });

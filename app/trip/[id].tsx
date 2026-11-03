@@ -28,6 +28,7 @@ import {
   Compass,
   ArrowRight,
   Sparkles,
+  Users,
 } from 'lucide-react-native';
 
 import { COLORS } from '../../src/constants/colors';
@@ -47,11 +48,13 @@ import {
   togglePackingItem,
 } from '../../src/services/packingService';
 import { getNotesByTrip } from '../../src/services/noteService';
+import { getMembersByTrip } from '../../src/services/groupExpenseService';
 
 import { Trip } from '../../src/types/trip';
 import { Expense } from '../../src/types/expense';
 import { Itinerary, PackingItem } from '../../src/types/itinerary';
 import { TravelNote } from '../../src/types/note';
+import { TripMember } from '../../src/types/groupExpense';
 
 import {
   formatDateRange,
@@ -69,6 +72,7 @@ export default function TripDetailScreen() {
   const [itineraries, setItineraries] = useState<Itinerary[]>([]);
   const [packingItems, setPackingItems] = useState<PackingItem[]>([]);
   const [notes, setNotes] = useState<TravelNote[]>([]);
+  const [members, setMembers] = useState<TripMember[]>([]);
   const [loading, setLoading] = useState(true);
 
   // Edit Modal
@@ -77,13 +81,14 @@ export default function TripDetailScreen() {
   const loadAllTripData = useCallback(async () => {
     if (!id) return;
     try {
-      const [tripData, expData, itinData, packData, notesData] =
+      const [tripData, expData, itinData, packData, notesData, membersData] =
         await Promise.all([
           getTripById(id),
           getExpensesByTrip(id),
           getItinerariesByTrip(id),
           getPackingItemsByTrip(id),
           getNotesByTrip(id),
+          getMembersByTrip(id),
         ]);
 
       if (!tripData) {
@@ -98,6 +103,7 @@ export default function TripDetailScreen() {
       setItineraries(itinData);
       setPackingItems(packData);
       setNotes(notesData);
+      setMembers(membersData);
     } catch (error) {
       console.error(error);
     } finally {
@@ -356,6 +362,31 @@ export default function TripDetailScreen() {
             </View>
             <ChevronRight color={COLORS.secondaryText} size={18} />
           </TouchableOpacity>
+
+          {/* Group Expenses & Food Split */}
+          <TouchableOpacity
+            style={styles.featureCard}
+            activeOpacity={0.8}
+            onPress={() =>
+              router.push({
+                pathname: '/trip/group-expenses',
+                params: { tripId: trip.id },
+              })
+            }
+          >
+            <View style={[styles.featureIconBox, { backgroundColor: '#E6F5EC' }]}>
+              <Users color={COLORS.primary} size={22} />
+            </View>
+            <View style={styles.featureInfo}>
+              <Text style={styles.featureTitle}>Group Expenses & Food Split</Text>
+              <Text style={styles.featureSub}>
+                {members.length > 0
+                  ? `${members.length} members · Individual food & bill splits`
+                  : 'Track individual food, split bills & export PDF'}
+              </Text>
+            </View>
+            <ChevronRight color={COLORS.secondaryText} size={18} />
+          </TouchableOpacity>
         </View>
 
         {/* Itinerary Preview Section */}
@@ -480,11 +511,25 @@ export default function TripDetailScreen() {
         {/* Trip Expenses Preview */}
         <View style={styles.sectionHeaderRow}>
           <Text style={styles.sectionHeaderTitle}>Trip Expenses</Text>
-          <TouchableOpacity
-            onPress={() => router.push('/(tabs)/expenses')}
-          >
-            <Text style={styles.sectionActionText}>Expense Hub</Text>
-          </TouchableOpacity>
+          <View style={{ flexDirection: 'row', gap: 12 }}>
+            <TouchableOpacity
+              onPress={() =>
+                router.push({
+                  pathname: '/trip/group-expenses',
+                  params: { tripId: trip.id },
+                })
+              }
+            >
+              <Text style={[styles.sectionActionText, { color: COLORS.primaryDark, fontWeight: '700' }]}>
+                Group Splits
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={() => router.push('/(tabs)/expenses')}
+            >
+              <Text style={styles.sectionActionText}>Expense Hub</Text>
+            </TouchableOpacity>
+          </View>
         </View>
 
         {expenses.length === 0 ? (

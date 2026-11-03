@@ -7,6 +7,11 @@ export const STORAGE_KEYS = {
   PACKING: '@tripmate/packing',
   NOTES: '@tripmate/notes',
   SETTINGS: '@tripmate/settings',
+  MEMBERS: '@tripmate/members',
+  GROUP_EXPENSES: '@tripmate/group_expenses',
+  FOOD_EXPENSES: '@tripmate/food_expenses',
+  ADVANCES: '@tripmate/advances',
+  SETTLEMENTS: '@tripmate/settlements',
 };
 
 export async function getData<T>(key: string, fallback: T): Promise<T> {
@@ -56,16 +61,26 @@ export interface BackupData {
   packing: any[];
   notes: any[];
   settings: any;
+  members?: any[];
+  groupExpenses?: any[];
+  foodExpenses?: any[];
+  advances?: any[];
+  settlements?: any[];
 }
 
 export async function exportAllData(): Promise<BackupData> {
-  const [trips, expenses, itineraries, packing, notes, settings] = await Promise.all([
+  const [trips, expenses, itineraries, packing, notes, settings, members, groupExpenses, foodExpenses, advances, settlements] = await Promise.all([
     getData(STORAGE_KEYS.TRIPS, []),
     getData(STORAGE_KEYS.EXPENSES, []),
     getData(STORAGE_KEYS.ITINERARIES, []),
     getData(STORAGE_KEYS.PACKING, []),
     getData(STORAGE_KEYS.NOTES, []),
     getData(STORAGE_KEYS.SETTINGS, null),
+    getData(STORAGE_KEYS.MEMBERS, []),
+    getData(STORAGE_KEYS.GROUP_EXPENSES, []),
+    getData(STORAGE_KEYS.FOOD_EXPENSES, []),
+    getData(STORAGE_KEYS.ADVANCES, []),
+    getData(STORAGE_KEYS.SETTLEMENTS, []),
   ]);
 
   return {
@@ -77,6 +92,11 @@ export async function exportAllData(): Promise<BackupData> {
     packing,
     notes,
     settings,
+    members,
+    groupExpenses,
+    foodExpenses,
+    advances,
+    settlements,
   };
 }
 
@@ -92,5 +112,10 @@ export async function importAllData(data: BackupData): Promise<void> {
     saveData(STORAGE_KEYS.PACKING, Array.isArray(data.packing) ? data.packing : []),
     saveData(STORAGE_KEYS.NOTES, Array.isArray(data.notes) ? data.notes : []),
     data.settings ? saveData(STORAGE_KEYS.SETTINGS, data.settings) : Promise.resolve(),
+    saveData(STORAGE_KEYS.MEMBERS, Array.isArray(data.members) ? data.members : []),
+    saveData(STORAGE_KEYS.GROUP_EXPENSES, Array.isArray(data.groupExpenses) ? data.groupExpenses : []),
+    saveData(STORAGE_KEYS.FOOD_EXPENSES, Array.isArray(data.foodExpenses) ? data.foodExpenses : []),
+    saveData(STORAGE_KEYS.ADVANCES, Array.isArray(data.advances) ? data.advances : []),
+    saveData(STORAGE_KEYS.SETTLEMENTS, Array.isArray(data.settlements) ? data.settlements : []),
   ]);
 }

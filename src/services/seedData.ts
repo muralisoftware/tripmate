@@ -2,6 +2,12 @@ import { Trip } from '../types/trip';
 import { Expense } from '../types/expense';
 import { Itinerary, PackingItem } from '../types/itinerary';
 import { TravelNote } from '../types/note';
+import {
+  TripMember,
+  FoodExpenseEntry,
+  GroupExpense,
+  AdvancePayment,
+} from '../types/groupExpense';
 import { saveData, STORAGE_KEYS } from './storage';
 import { addDays, getTodayDateString } from '../utils/date';
 
@@ -209,9 +215,181 @@ export async function seedSampleData(): Promise<void> {
     },
   ];
 
+  const sampleMembers: TripMember[] = [
+    { id: 'mem_1', tripId: 'trip_bali_2026', name: 'Murali', phone: '+91 98765 43210', createdAt: new Date().toISOString() },
+    { id: 'mem_2', tripId: 'trip_bali_2026', name: 'Arun', phone: '+91 98765 12345', createdAt: new Date().toISOString() },
+    { id: 'mem_3', tripId: 'trip_bali_2026', name: 'Praveen', phone: '+91 97890 54321', createdAt: new Date().toISOString() },
+    { id: 'mem_4', tripId: 'trip_bali_2026', name: 'Kumar', phone: '+91 91234 56789', createdAt: new Date().toISOString() },
+    // Also for Kyoto trip
+    { id: 'mem_k1', tripId: 'trip_kyoto_2026', name: 'Murali', phone: '+91 98765 43210', createdAt: new Date().toISOString() },
+    { id: 'mem_k2', tripId: 'trip_kyoto_2026', name: 'Praveen', phone: '+91 97890 54321', createdAt: new Date().toISOString() },
+  ];
+
+  const sampleFoodExpenses: FoodExpenseEntry[] = [
+    {
+      id: 'food_1',
+      tripId: 'trip_bali_2026',
+      memberId: 'mem_1',
+      memberName: 'Murali',
+      mealType: 'Breakfast',
+      amount: 250,
+      date: today,
+      description: 'Cafe Avocado Toast & Coffee',
+      notes: 'Near hotel cafe',
+      createdAt: new Date().toISOString(),
+    },
+    {
+      id: 'food_2',
+      tripId: 'trip_bali_2026',
+      memberId: 'mem_2',
+      memberName: 'Arun',
+      mealType: 'Lunch',
+      amount: 180,
+      date: today,
+      description: 'Nasi Goreng Rice Bowl',
+      notes: 'Local Warung',
+      createdAt: new Date().toISOString(),
+    },
+    {
+      id: 'food_3',
+      tripId: 'trip_bali_2026',
+      memberId: 'mem_3',
+      memberName: 'Praveen',
+      mealType: 'Dinner',
+      amount: 350,
+      date: today,
+      description: 'Grilled Jimbaran Seafood',
+      notes: 'Beachside restaurant',
+      createdAt: new Date().toISOString(),
+    },
+    {
+      id: 'food_4',
+      tripId: 'trip_bali_2026',
+      memberId: 'mem_4',
+      memberName: 'Kumar',
+      mealType: 'Snacks',
+      amount: 200,
+      date: today,
+      description: 'Fresh Juice & Banana Fritters',
+      notes: 'Afternoon break',
+      createdAt: new Date().toISOString(),
+    },
+  ];
+
+  const sampleGroupExpenses: GroupExpense[] = [
+    {
+      id: 'gexp_1',
+      tripId: 'trip_bali_2026',
+      title: 'Ubud Private Pool Villa (2 Nights)',
+      category: 'Hotel',
+      amount: 6000,
+      paidByMemberId: 'mem_3',
+      paidByMemberName: 'Praveen',
+      date: today,
+      splitType: 'equal',
+      splits: [
+        { memberId: 'mem_1', memberName: 'Murali', amount: 1500 },
+        { memberId: 'mem_2', memberName: 'Arun', amount: 1500 },
+        { memberId: 'mem_3', memberName: 'Praveen', amount: 1500 },
+        { memberId: 'mem_4', memberName: 'Kumar', amount: 1500 },
+      ],
+      notes: 'AirBnB luxury villa with 4 bedrooms',
+      createdAt: new Date().toISOString(),
+    },
+    {
+      id: 'gexp_2',
+      tripId: 'trip_bali_2026',
+      title: '4x Scooters & Full Tank Fuel',
+      category: 'Transport',
+      amount: 1600,
+      paidByMemberId: 'mem_1',
+      paidByMemberName: 'Murali',
+      date: today,
+      splitType: 'equal',
+      splits: [
+        { memberId: 'mem_1', memberName: 'Murali', amount: 400 },
+        { memberId: 'mem_2', memberName: 'Arun', amount: 400 },
+        { memberId: 'mem_3', memberName: 'Praveen', amount: 400 },
+        { memberId: 'mem_4', memberName: 'Kumar', amount: 400 },
+      ],
+      notes: 'Scooters rented for 2 days exploration',
+      createdAt: new Date().toISOString(),
+    },
+    {
+      id: 'gexp_3',
+      tripId: 'trip_bali_2026',
+      title: 'Temple Entrance Passes & Sarongs',
+      category: 'Tickets',
+      amount: 920,
+      paidByMemberId: 'mem_2',
+      paidByMemberName: 'Arun',
+      date: today,
+      splitType: 'custom',
+      splits: [
+        { memberId: 'mem_1', memberName: 'Murali', amount: 350 },
+        { memberId: 'mem_2', memberName: 'Arun', amount: 120 },
+        { memberId: 'mem_3', memberName: 'Praveen', amount: 250 },
+        { memberId: 'mem_4', memberName: 'Kumar', amount: 200 },
+      ],
+      notes: 'Custom split based on rental sarong selection',
+      createdAt: new Date().toISOString(),
+    },
+  ];
+
+  const sampleAdvances: AdvancePayment[] = [
+    {
+      id: 'adv_1',
+      tripId: 'trip_bali_2026',
+      memberId: 'mem_1',
+      memberName: 'Murali',
+      amount: 1000,
+      date: today,
+      paymentMethod: 'UPI',
+      notes: 'Advance transfer via GPay',
+      createdAt: new Date().toISOString(),
+    },
+    {
+      id: 'adv_2',
+      tripId: 'trip_bali_2026',
+      memberId: 'mem_2',
+      memberName: 'Arun',
+      amount: 500,
+      date: today,
+      paymentMethod: 'UPI',
+      notes: 'Initial advance',
+      createdAt: new Date().toISOString(),
+    },
+    {
+      id: 'adv_3',
+      tripId: 'trip_bali_2026',
+      memberId: 'mem_3',
+      memberName: 'Praveen',
+      amount: 1000,
+      date: today,
+      paymentMethod: 'Bank Transfer',
+      notes: 'Initial advance deposit',
+      createdAt: new Date().toISOString(),
+    },
+    {
+      id: 'adv_4',
+      tripId: 'trip_bali_2026',
+      memberId: 'mem_4',
+      memberName: 'Kumar',
+      amount: 500,
+      date: today,
+      paymentMethod: 'Cash',
+      notes: 'Cash handed at airport',
+      createdAt: new Date().toISOString(),
+    },
+  ];
+
   await saveData(STORAGE_KEYS.TRIPS, sampleTrips);
   await saveData(STORAGE_KEYS.EXPENSES, sampleExpenses);
   await saveData(STORAGE_KEYS.ITINERARIES, sampleItineraries);
   await saveData(STORAGE_KEYS.PACKING, samplePacking);
   await saveData(STORAGE_KEYS.NOTES, sampleNotes);
+  await saveData(STORAGE_KEYS.MEMBERS, sampleMembers);
+  await saveData(STORAGE_KEYS.FOOD_EXPENSES, sampleFoodExpenses);
+  await saveData(STORAGE_KEYS.GROUP_EXPENSES, sampleGroupExpenses);
+  await saveData(STORAGE_KEYS.ADVANCES, sampleAdvances);
 }

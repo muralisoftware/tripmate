@@ -14,7 +14,8 @@ import {
   Keyboard,
   useWindowDimensions,
 } from 'react-native';
-import { useFocusEffect } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   Plus,
   Wallet,
@@ -25,6 +26,8 @@ import {
   Calendar,
   Layers,
   Keyboard as KeyboardIcon,
+  Users,
+  ChevronRight,
 } from 'lucide-react-native';
 import { COLORS } from '../../src/constants/colors';
 import { EXPENSE_CATEGORIES } from '../../src/constants/config';
@@ -45,6 +48,8 @@ import { AppInput } from '../../src/components/common/AppInput';
 import { AppButton } from '../../src/components/common/AppButton';
 
 export default function ExpensesScreen() {
+  const router = useRouter();
+  const insets = useSafeAreaInsets();
   const { height: screenHeight } = useWindowDimensions();
   const [trips, setTrips] = useState<Trip[]>([]);
   const [expenses, setExpenses] = useState<Expense[]>([]);
@@ -215,7 +220,7 @@ export default function ExpensesScreen() {
   return (
     <View style={styles.container}>
       {/* Header */}
-      <View style={styles.header}>
+      <View style={[styles.header, { paddingTop: Math.max(insets.top, 20) + 8 }]}>
         <View>
           <Text style={styles.screenTitle}>Expense Manager</Text>
           <Text style={styles.screenSubtitle}>
@@ -326,6 +331,41 @@ export default function ExpensesScreen() {
             </Text>
           </View>
         </View>
+
+        {/* Group Expenses Navigation Banner */}
+        {trips.length > 0 && (
+          <TouchableOpacity
+            style={styles.groupExpenseBanner}
+            activeOpacity={0.8}
+            onPress={() => {
+              const targetTripId =
+                selectedTripId !== 'all' ? selectedTripId : trips[0].id;
+              router.push({
+                pathname: '/trip/group-expenses',
+                params: { tripId: targetTripId },
+              });
+            }}
+          >
+            <View style={styles.groupExpenseBannerLeft}>
+              <View style={styles.groupExpenseIconBox}>
+                <Users color={COLORS.primary} size={22} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.groupExpenseBannerTitle}>
+                  Group Expenses & Food Split
+                </Text>
+                <Text style={styles.groupExpenseBannerSub} numberOfLines={2}>
+                  {selectedTripId !== 'all'
+                    ? `Individual food, splits, advances & PDF for ${
+                        trips.find((t) => t.id === selectedTripId)?.title
+                      }`
+                    : 'Track individual food, split bills & export PDF reports'}
+                </Text>
+              </View>
+            </View>
+            <ChevronRight color={COLORS.primary} size={20} />
+          </TouchableOpacity>
+        )}
 
         {/* Category Breakdown */}
         {totalSpent > 0 && (
@@ -598,7 +638,6 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 20,
-    paddingTop: 55,
     paddingBottom: 14,
     backgroundColor: COLORS.white,
     borderBottomWidth: 1,
@@ -661,7 +700,7 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     padding: 20,
-    paddingBottom: 40,
+    paddingBottom: 110,
   },
   summaryCard: {
     backgroundColor: COLORS.white,
@@ -675,6 +714,45 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.08,
     shadowRadius: 10,
     elevation: 3,
+  },
+  groupExpenseBanner: {
+    backgroundColor: '#E6F5EC',
+    borderRadius: 18,
+    padding: 16,
+    marginBottom: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    borderWidth: 1,
+    borderColor: '#B9E5CC',
+  },
+  groupExpenseBannerLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+    gap: 12,
+    marginRight: 8,
+  },
+  groupExpenseIconBox: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: COLORS.white,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: '#B9E5CC',
+  },
+  groupExpenseBannerTitle: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: COLORS.primaryDark,
+  },
+  groupExpenseBannerSub: {
+    fontSize: 12,
+    color: '#2A5E40',
+    marginTop: 2,
+    lineHeight: 16,
   },
   summaryTop: {
     flexDirection: 'row',

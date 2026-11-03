@@ -8,8 +8,12 @@ import {
   Alert,
   Share,
   Platform,
+  Image,
+  Modal,
+  ActivityIndicator,
 } from 'react-native';
 import { useRouter, useFocusEffect } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   UserRound,
   Settings,
@@ -24,6 +28,7 @@ import {
   MapPin,
   Calendar,
   Wallet,
+  Eye,
 } from 'lucide-react-native';
 import { COLORS } from '../../src/constants/colors';
 import { getTrips } from '../../src/services/tripService';
@@ -41,8 +46,10 @@ import { formatCurrency } from '../../src/utils/currency';
 
 export default function ProfileScreen() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const [trips, setTrips] = useState<Trip[]>([]);
   const [totalSpent, setTotalSpent] = useState(0);
+  const [showSplashPreview, setShowSplashPreview] = useState(false);
 
   const loadProfileData = useCallback(async () => {
     try {
@@ -152,13 +159,20 @@ export default function ProfileScreen() {
   return (
     <ScrollView
       style={styles.container}
-      contentContainerStyle={styles.content}
+      contentContainerStyle={[
+        styles.content,
+        { paddingTop: Math.max(insets.top, 20) + 12 },
+      ]}
       showsVerticalScrollIndicator={false}
     >
       {/* Header Profile Info */}
       <View style={styles.profileHeader}>
         <View style={styles.avatarCircle}>
-          <UserRound color={COLORS.primary} size={40} />
+          <Image
+            source={require('../../assets/images/app-logo.png')}
+            style={{ width: 72, height: 72, borderRadius: 36 }}
+            resizeMode="contain"
+          />
         </View>
         <Text style={styles.userName}>Travel Explorer</Text>
         <Text style={styles.userBio}>Offline-First Wanderer · TripMate</Text>
@@ -211,6 +225,21 @@ export default function ProfileScreen() {
           <View style={styles.menuCenter}>
             <Text style={styles.menuTitle}>App Settings</Text>
             <Text style={styles.menuSub}>Currencies, notifications & defaults</Text>
+          </View>
+          <ChevronRight color={COLORS.secondaryText} size={18} />
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.menuItem}
+          onPress={() => setShowSplashPreview(true)}
+          activeOpacity={0.7}
+        >
+          <View style={[styles.menuIconBox, { backgroundColor: '#E6F5EC' }]}>
+            <Eye color={COLORS.primary} size={20} />
+          </View>
+          <View style={styles.menuCenter}>
+            <Text style={styles.menuTitle}>Preview App Splash Screen</Text>
+            <Text style={styles.menuSub}>Test splash animation & logo</Text>
           </View>
           <ChevronRight color={COLORS.secondaryText} size={18} />
         </TouchableOpacity>
@@ -290,6 +319,44 @@ export default function ProfileScreen() {
           TripMate v1.0.0 · 100% Offline & Private
         </Text>
       </View>
+
+      {/* Splash Screen Preview Modal */}
+      <Modal
+        visible={showSplashPreview}
+        animationType="fade"
+        transparent={false}
+        onRequestClose={() => setShowSplashPreview(false)}
+      >
+        <TouchableOpacity
+          style={styles.modalSplashContainer}
+          activeOpacity={1}
+          onPress={() => setShowSplashPreview(false)}
+        >
+          <View style={styles.modalSplashContent}>
+            <View style={styles.modalLogoHalo}>
+              <Image
+                source={require('../../assets/images/app-logo.png')}
+                style={styles.modalLogoImage}
+                resizeMode="contain"
+              />
+            </View>
+            <Text style={styles.modalSplashTitle}>TripMate</Text>
+            <Text style={styles.modalSplashTagline}>
+              Smart Travel & Group Expense Manager
+            </Text>
+
+            <View style={styles.modalLoadingBox}>
+              <ActivityIndicator size="small" color={COLORS.primary} />
+              <Text style={styles.modalLoadingText}>TripMate is Ready</Text>
+            </View>
+          </View>
+
+          <View style={styles.modalSplashFooter}>
+            <Text style={styles.modalTapHint}>Tap anywhere to close preview</Text>
+            <Text style={styles.modalVersion}>TripMate v1.0.0 · Glossy Green Edition</Text>
+          </View>
+        </TouchableOpacity>
+      </Modal>
     </ScrollView>
   );
 }
@@ -301,8 +368,7 @@ const styles = StyleSheet.create({
   },
   content: {
     padding: 20,
-    paddingTop: 55,
-    paddingBottom: 40,
+    paddingBottom: 110,
   },
   profileHeader: {
     alignItems: 'center',
@@ -426,5 +492,84 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: COLORS.secondaryText,
     fontWeight: '500',
+  },
+  modalSplashContainer: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 60,
+    paddingHorizontal: 24,
+  },
+  modalSplashContent: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    width: '100%',
+  },
+  modalLogoHalo: {
+    width: 150,
+    height: 150,
+    borderRadius: 75,
+    backgroundColor: '#E6F5EC',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 24,
+    shadowColor: COLORS.primary,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.18,
+    shadowRadius: 18,
+    elevation: 8,
+  },
+  modalLogoImage: {
+    width: 124,
+    height: 124,
+    borderRadius: 62,
+  },
+  modalSplashTitle: {
+    fontSize: 34,
+    fontWeight: '800',
+    color: COLORS.primary,
+    letterSpacing: -0.5,
+    marginBottom: 6,
+  },
+  modalSplashTagline: {
+    fontSize: 14,
+    color: COLORS.secondaryText,
+    fontWeight: '500',
+    textAlign: 'center',
+    paddingHorizontal: 30,
+  },
+  modalLoadingBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 32,
+    paddingHorizontal: 18,
+    paddingVertical: 9,
+    borderRadius: 20,
+    backgroundColor: '#F1FBF5',
+    gap: 8,
+  },
+  modalLoadingText: {
+    fontSize: 13,
+    color: COLORS.primary,
+    fontWeight: '600',
+  },
+  modalSplashFooter: {
+    alignItems: 'center',
+    gap: 8,
+  },
+  modalTapHint: {
+    fontSize: 13,
+    color: COLORS.primary,
+    fontWeight: '600',
+    backgroundColor: '#E6F5EC',
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    borderRadius: 14,
+  },
+  modalVersion: {
+    fontSize: 11,
+    color: '#94A3B8',
   },
 });

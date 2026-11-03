@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, StyleProp, ViewStyle } from 'react-native';
 import { useRouter } from 'expo-router';
 import { ArrowLeft } from 'lucide-react-native';
 import { COLORS } from '../../constants/colors';
@@ -10,6 +10,7 @@ interface HeaderProps {
   showBack?: boolean;
   onBack?: () => void;
   rightAction?: React.ReactNode;
+  style?: StyleProp<ViewStyle>;
 }
 
 export function Header({
@@ -18,6 +19,7 @@ export function Header({
   showBack = true,
   onBack,
   rightAction,
+  style,
 }: HeaderProps) {
   const router = useRouter();
 
@@ -30,7 +32,7 @@ export function Header({
   };
 
   return (
-    <View style={styles.header}>
+    <View style={[styles.header, style]}>
       <View style={styles.left}>
         {showBack && (
           <TouchableOpacity
